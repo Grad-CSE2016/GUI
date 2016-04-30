@@ -1,4 +1,3 @@
-
 import cv2
 import numpy as np
 import sys
@@ -6,7 +5,7 @@ from PyQt5.QtGui import QImage
 from PyQt5.QtWidgets import (QWidget, QHBoxLayout,QPushButton,
     QLabel, QApplication)
 from PyQt5.QtGui import QPixmap
-
+import Tracking
 
 class Example(QWidget):
 
@@ -24,7 +23,7 @@ class Example(QWidget):
         self.setLayout(hbox)
 
         self.move(300, 200)
-        self.setWindowTitle('Red Rock')
+        self.setWindowTitle('surveillance system')
         self.show()
 
     def changeim(self,src):
@@ -45,20 +44,14 @@ if __name__ == '__main__':
 
     app = QApplication(sys.argv)
     ex = Example()
-
-
+    tracker=Tracking.Tracking()
     vid = cv2.VideoCapture("test.avi")
-    while (vid.isOpened()):
-        ret, frame = vid.read()
-        if ret==False:
-            break
-        src = cv2_to_qimage(frame)
+    ret, frame = vid.read()
+    while (ret):
+        out=tracker.get_frame(frame)
+        src = cv2_to_qimage(out)
         ex.changeim(src)
         #cv2.imshow("frames",frame)
-        if cv2.waitKey(0) & 0xFF == ord('q'):
-            break
-
-
-
-
+        ret, frame = vid.read()
+        cv2.waitKey(1)
     sys.exit(app.exec_())
