@@ -10,6 +10,7 @@ class Tracking():
         mog_er_h = 7
         mog_di_w = 16
         mog_di_h = 26
+        cv2.ocl.setUseOpenCL(False)
         self.bgs_mog = cv2.createBackgroundSubtractorMOG2()
         self.for_er = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(mog_er_w, mog_er_h))
         self.for_di = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(mog_di_w, mog_di_h))
