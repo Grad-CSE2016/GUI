@@ -2,12 +2,14 @@ import cv2
 import numpy as np
 import sys
 from PyQt5.QtGui import QImage
-from PyQt5.QtWidgets import (QWidget, QHBoxLayout,QPushButton,
-    QLabel, QApplication)
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtWidgets import (QWidget, QHBoxLayout,QPushButton,QFileDialog,
+    QLabel, QApplication,  QMainWindow, QAction, qApp)
+from PyQt5.QtGui import QPixmap,QIcon
+
 import Tracking
 
-class Example(QWidget):
+
+class Example(QMainWindow):
 
 
     def __init__(self):
@@ -20,11 +22,29 @@ class Example(QWidget):
         self.lbl = QLabel(self)
         hbox = QHBoxLayout(self)
         hbox.addWidget(self.lbl)
-        self.setLayout(hbox)
+        parentBox=QWidget(self)
+        parentBox.setLayout(hbox)
+        self.setCentralWidget(parentBox)
 
-        self.move(300, 200)
+        openFile = QAction(QIcon('open.png'), 'Open', self)
+        openFile.setShortcut('Ctrl+O')
+        openFile.setStatusTip('Open new File')
+        openFile.triggered.connect(self.showDialog)
+
+        menubar = self.menuBar()
+        fileMenu = menubar.addMenu('&File')
+        fileMenu.addAction(openFile)
+
+        self.setGeometry(300, 300, 350, 300)
         self.setWindowTitle('surveillance system')
         self.show()
+    def showDialog(self):
+        fname = QFileDialog.getOpenFileName(self, 'Open file', '/home')
+        if fname[0]:
+            f = open(fname[0], 'r')
+            with f:
+                changeFileSrc(fname[0])
+                #self.textEdit.setText(data)
 
     def changeim(self,src):
         pixmap = QPixmap(src)
@@ -38,13 +58,11 @@ def cv2_to_qimage(cv_img):
     bgra[:, :, 0:3] = cv_img
     return QImage(bgra.data, width, height, QImage.Format_RGB32)
 
+def changeFileSrc(src):
+    play(src)
 
 
-if __name__ == '__main__':
-
-    app = QApplication(sys.argv)
-    ex = Example()
-    tracker=Tracking.Tracking()
+def play(src):
     vid = cv2.VideoCapture("test.avi")
     ret, frame = vid.read()
     while (ret):
@@ -54,4 +72,9 @@ if __name__ == '__main__':
         #cv2.imshow("frames",frame)
         ret, frame = vid.read()
         cv2.waitKey(1)
-    sys.exit(app.exec_())
+
+
+app = QApplication(sys.argv)
+ex = Example()
+tracker=Tracking.Tracking()
+sys.exit(app.exec_())
