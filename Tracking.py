@@ -21,12 +21,14 @@ class Tracking():
         im_er = cv2.erode(im_bw, self.for_er)
         im_dl = cv2.dilate(im_er, self.for_di)
         _, contours, hierarchy = cv2.findContours(im_dl, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        coordinates = []
         for cnt in contours:
             try:
                 x,y,w,h = cv2.boundingRect(cnt)
-                cv2.rectangle(f, (x,y), (x+w, y+h), (255,0,0), 2)
+                #cv2.rectangle(f, (x,y), (x+w, y+h), (255,0,0), 2)
+                coordinates.append((x,y,w,h))
             except:
                 print ("Bad Rect")
-        cv2.drawContours(f,contours,-1,(0,255,0),1)
+        #cv2.drawContours(f,contours,-1,(0,255,0),1)
 
-        return f
+        return coordinates

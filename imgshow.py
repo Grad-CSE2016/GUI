@@ -19,7 +19,6 @@ class Example(QMainWindow):
 
     def __init__(self):
         super().__init__()
-
         self.initUI()
 
     def initUI(self):
@@ -41,21 +40,15 @@ class Example(QMainWindow):
         hbox.addLayout(vbox)
         hbox.addStretch(1)
 
-        #self.logs = QLabel(self)
-        #self.logs.setWordWrap(True) 
-        #self.logs.setMaximumHeight(100)
         self.logs = QTextEdit(self)
         self.logs.setReadOnly(True)
         self.logs.setLineWrapMode(QTextEdit.NoWrap)
         self.logs.setMaximumHeight(200)
         
-
-
         vbox2 = QVBoxLayout(self)
         vbox2.addLayout(hbox)
         vbox2.addWidget(self.logs)
         
-
         parentBox=QWidget(self)
         parentBox.setLayout(vbox2)  
         self.setCentralWidget(parentBox)
@@ -103,11 +96,6 @@ class Example(QMainWindow):
             #self.log_msg = self.log_msg + "\n" + btn.text()+ " Turned off ..."
             #self.logs.setText(self.log_msg)
 
-
-
-
-
-
     def showDialog(self):
         fname = QFileDialog.getOpenFileName(self, 'Open file', '/home')
         if fname[0]:
@@ -130,14 +118,20 @@ def cv2_to_qimage(cv_img):
 
 def changeFileSrc(src):
     play(src)
-
+    
+def draw(frame,coordinates):
+    for coordinate in coordinates:
+        x,y,w,h = coordinate
+        cv2.rectangle(frame, (x,y), (x+w, y+h), (255,0,0), 2)
+    return frame
 
 def play(src):
     vid = cv2.VideoCapture("test.avi")
     ret, frame = vid.read()
     while (ret):
-        out=tracker.get_frame(frame)
-        src = cv2_to_qimage(out)
+        out = tracker.get_frame(frame)
+        drawn_frame = draw(frame,out)
+        src = cv2_to_qimage(drawn_frame)
         ex.changeim(src)
         #cv2.imshow("frames",frame)
         ret, frame = vid.read()
