@@ -3,28 +3,67 @@ import numpy as np
 import sys
 from PyQt5.QtGui import QImage
 from PyQt5.QtWidgets import (QWidget, QHBoxLayout,QPushButton,QFileDialog,
-    QLabel, QApplication,  QMainWindow, QAction, qApp)
+    QLabel, QApplication,  QMainWindow, QAction, qApp,QVBoxLayout,QCheckBox,QTextEdit)
 from PyQt5.QtGui import QPixmap,QIcon
+from PyQt5.QtCore import Qt
 
 import Tracking
 
 
 class Example(QMainWindow):
-
+    tracking = "Tracking"
+    luggage = "Luggage"
+    actions = "Action Recognition"
+    falling = "Falling"
+    log_msg = ""
 
     def __init__(self):
         super().__init__()
 
         self.initUI()
 
-
     def initUI(self):
         self.lbl = QLabel(self)
         hbox = QHBoxLayout(self)
         hbox.addWidget(self.lbl)
+        
+        vbox = QVBoxLayout(self)
+        tracking = QCheckBox(self.tracking)
+        luggage= QCheckBox(self.luggage)
+        actions = QCheckBox(self.actions)
+        falling = QCheckBox(self.falling)
+
+        vbox.addWidget(tracking)
+        vbox.addWidget(luggage)
+        vbox.addWidget(actions)
+        vbox.addWidget(falling)
+
+        hbox.addLayout(vbox)
+        hbox.addStretch(1)
+
+        #self.logs = QLabel(self)
+        #self.logs.setWordWrap(True) 
+        #self.logs.setMaximumHeight(100)
+        self.logs = QTextEdit(self)
+        self.logs.setReadOnly(True)
+        self.logs.setLineWrapMode(QTextEdit.NoWrap)
+        self.logs.setMaximumHeight(200)
+        
+
+
+        vbox2 = QVBoxLayout(self)
+        vbox2.addLayout(hbox)
+        vbox2.addWidget(self.logs)
+        
+
         parentBox=QWidget(self)
-        parentBox.setLayout(hbox)
+        parentBox.setLayout(vbox2)  
         self.setCentralWidget(parentBox)
+
+        tracking.stateChanged.connect(lambda:self.button_Pressed(tracking))
+        luggage.stateChanged.connect(lambda:self.button_Pressed(luggage))
+        actions.stateChanged.connect(lambda:self.button_Pressed(actions))
+        falling.stateChanged.connect(lambda:self.button_Pressed(falling))
 
         openFile = QAction(QIcon('open.png'), 'Open', self)
         openFile.setShortcut('Ctrl+O')
@@ -38,6 +77,37 @@ class Example(QMainWindow):
         self.setGeometry(300, 300, 350, 300)
         self.setWindowTitle('surveillance system')
         self.show()
+
+    def button_Pressed(self,btn):
+        if btn.isChecked() == True:
+            #self.log_msg = self.log_msg  + btn.text()+ " Started ..."
+            #self.logs.setText(self.log_msg)
+            #self.logs.insertPlainText(self.log_msg)
+            self.log_msg = btn.text() + " Started ..."
+            self.logs.append(self.log_msg)
+            if btn.text() == self.tracking:
+                #call tracking file
+                pass
+            elif btn.text() == self.luggage:
+                #call luggage file
+                pass
+            elif btn.text() == self.actions:
+                #call action recognition file
+                pass
+            elif btn.text() == self.falling:
+                #call falling file
+                pass
+        else:
+            self.log_msg = btn.text() + " Turned Off ..."
+            self.logs.append(self.log_msg)
+            #self.log_msg = self.log_msg + "\n" + btn.text()+ " Turned off ..."
+            #self.logs.setText(self.log_msg)
+
+
+
+
+
+
     def showDialog(self):
         fname = QFileDialog.getOpenFileName(self, 'Open file', '/home')
         if fname[0]:
