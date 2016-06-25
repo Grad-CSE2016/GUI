@@ -16,6 +16,8 @@ class Example(QMainWindow):
     actions = "Action Recognition"
     falling = "Falling"
     log_msg = ""
+    tracking_flag = False
+    luggage_flag = False
 
     def __init__(self):
         super().__init__()
@@ -80,6 +82,7 @@ class Example(QMainWindow):
             self.logs.append(self.log_msg)
             if btn.text() == self.tracking:
                 #call tracking file
+                self.tracking_flag = True
                 pass
             elif btn.text() == self.luggage:
                 #call luggage file
@@ -93,6 +96,19 @@ class Example(QMainWindow):
         else:
             self.log_msg = btn.text() + " Turned Off ..."
             self.logs.append(self.log_msg)
+            if btn.text() == self.tracking:
+                #call tracking file
+                self.tracking_flag = False
+                pass
+            elif btn.text() == self.luggage:
+                #call luggage file
+                pass
+            elif btn.text() == self.actions:
+                #call action recognition file
+                pass
+            elif btn.text() == self.falling:
+                #call falling file
+                pass
             #self.log_msg = self.log_msg + "\n" + btn.text()+ " Turned off ..."
             #self.logs.setText(self.log_msg)
 
@@ -118,7 +134,7 @@ def cv2_to_qimage(cv_img):
 
 def changeFileSrc(src):
     play(src)
-    
+
 def draw(frame,coordinates):
     for coordinate in coordinates:
         x,y,w,h = coordinate
@@ -129,16 +145,21 @@ def play(src):
     vid = cv2.VideoCapture("test.avi")
     ret, frame = vid.read()
     while (ret):
-        out = tracker.get_frame(frame)
-        drawn_frame = draw(frame,out)
-        src = cv2_to_qimage(drawn_frame)
-        ex.changeim(src)
+        if gui.tracking_flag == True:
+            out = tracker.get_frame(frame)
+            frame = draw(frame,out)
+        if gui.luggage_flag == False:
+            pass
+
         #cv2.imshow("frames",frame)
+        src = cv2_to_qimage(frame)
+        gui.changeim(src)
+
+
         ret, frame = vid.read()
         cv2.waitKey(1)
 
-
 app = QApplication(sys.argv)
-ex = Example()
+gui = Example()
 tracker=Tracking.Tracking()
 sys.exit(app.exec_())
