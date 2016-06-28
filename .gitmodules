@@ -1,0 +1,3 @@
+[submodule "Abandoned-Object-Detection"]
+	path = Abandoned-Object-Detection
+	url = https://github.com/Grad-CSE2016/Abandoned-Object-Detection.git
