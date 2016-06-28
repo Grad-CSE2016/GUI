@@ -5,7 +5,7 @@ from PyQt5.QtGui import QImage
 from PyQt5.QtWidgets import (QWidget, QHBoxLayout,QPushButton,QFileDialog,
     QLabel, QApplication,  QMainWindow, QAction, qApp,QVBoxLayout,QCheckBox,QTextEdit)
 from PyQt5.QtGui import QPixmap,QIcon
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import (Qt,QThread)
 
 import Tracking
 
@@ -142,14 +142,33 @@ def draw(frame,coordinates):
     return frame
 
 def play(src):
-    vid = cv2.VideoCapture("test.avi")
+    vid = cv2.VideoCapture("2.mp4")
     ret, frame = vid.read()
+    thread1  = QThread()
+    thread2  = QThread()
     while (ret):
         if gui.tracking_flag == True:
-            out = tracker.get_frame(frame)
-            frame = draw(frame,out)
-        if gui.luggage_flag == False:
+            tracker.moveToThread(thread1)
+
+            tracker.get_frame(frame)
+
+            tracker.calc_bounding.connect(draw)
+
+            #self.stopButton.clicked.connect(self.simulRunner.stop)
+            thread1.start()
+            # start the execution loop with the thread:
+            #self.simulThread.started.connect(self.simulRunner.longRunning)
+
+            #out = tracker.get_frame(frame)
+            #frame = draw(frame,out)
+        if gui.luggage_flag == True:
+            #tracker.moveToThread(thread1)
+            #tracker.get_frame(frame)
+            #tracker.calc_bounding.connect(draw)
+            #thread1.start()
             pass
+
+            
 
         #cv2.imshow("frames",frame)
         src = cv2_to_qimage(frame)

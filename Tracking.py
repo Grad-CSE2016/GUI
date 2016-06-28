@@ -1,11 +1,13 @@
 import cv2
 import sys, getopt
 import numpy as np
+from PyQt5.QtCore import (pyqtSignal,QObject)
+import numpy as np 
 
-
-
-class Tracking():
+class Tracking(QObject):
+    calc_bounding = pyqtSignal(np.ndarray,list,name = "calc_bounding" )
     def __init__(self):
+        super(Tracking, self).__init__()
         mog_er_w = 7
         mog_er_h = 7
         mog_di_w = 16
@@ -30,5 +32,5 @@ class Tracking():
             except:
                 print ("Bad Rect")
         #cv2.drawContours(f,contours,-1,(0,255,0),1)
-
+        self.calc_bounding.emit(f,coordinates)
         return coordinates
