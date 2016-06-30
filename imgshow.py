@@ -8,8 +8,11 @@ from PyQt5.QtGui import QPixmap,QIcon
 from PyQt5.QtCore import (Qt,QThread)
 from PyQt5 import QtSql
 from datetime import datetime
+
 import Tracking
 
+sys.path.append('./Abandoned-Object-Detection')
+from AbandonedObjectDetection import * 
 
 class Example(QMainWindow):
     tracking = "Tracking"
@@ -19,6 +22,7 @@ class Example(QMainWindow):
     log_msg = ""
     tracking_flag = False
     luggage_flag = False
+    luggage_coordinates = []
 
     def __init__(self):
         super().__init__()
@@ -121,8 +125,6 @@ class Example(QMainWindow):
         date = date.strftime('%m/%d/%Y')  
         time = time.strftime('%H:%M:%S')  
 
-        
-        print(date,time)
         query.addBindValue(date)
         query.addBindValue(time)
         query.addBindValue(text)
@@ -140,6 +142,7 @@ class Example(QMainWindow):
                 pass
             elif btn.text() == self.luggage:
                 #call luggage file
+                self.luggage_flag = True
                 pass
             elif btn.text() == self.actions:
                 #call action recognition file
@@ -156,6 +159,7 @@ class Example(QMainWindow):
                 pass
             elif btn.text() == self.luggage:
                 #call luggage file
+                self.luggage_flag = False
                 pass
             elif btn.text() == self.actions:
                 #call action recognition file
@@ -195,16 +199,34 @@ def changeFileSrc(src):
 
 def draw(frame,coordinates):
     for coordinate in coordinates:
-        x,y,w,h = coordinate
-        cv2.rectangle(frame, (x,y), (x+w, y+h), (255,0,0), 2)
-    return frame
+        if len(coordinate) == 4:
+            x,y,w,h = coordinate
+            cv2.rectangle(frame, (x,y), (x+w, y+h), (0,255,0), 2)
+        elif len(coordinate) == 5:
+            x,y,w,h,_ = coordinate
+            cv2.rectangle(frame, (x,y), (x+w, y+h), (255,0,0), 2)
+            if coordinate not in gui.luggage_coordinates:
+                gui.logs.append("Unattended Luggage Detected !")
+                gui.insert_DB("Unattended Luggage Detected !")
+                gui.luggage_coordinates.append(coordinate)
+
+
+
+    
+
 
 def play(src):
     vid = cv2.VideoCapture("2.mp4")
-    ret, frame = vid.read()
+    BG = cv2.imread('./Abandoned-Object-Detection/bg.jpg')
+
+    aod = AbandonedObjectDetection(vid, BG)
+
     thread1  = QThread()
     thread2  = QThread()
-    while (ret):
+    while (1):
+        ret, frame = vid.read()
+        
+
         if gui.tracking_flag == True:
             tracker.moveToThread(thread1)
 
@@ -220,6 +242,9 @@ def play(src):
             #out = tracker.get_frame(frame)
             #frame = draw(frame,out)
         if gui.luggage_flag == True:
+
+            objs = aod.get_abandoned_objs(frame)
+            draw(frame,objs)
             #tracker.moveToThread(thread1)
             #tracker.get_frame(frame)
             #tracker.calc_bounding.connect(draw)
@@ -231,9 +256,6 @@ def play(src):
         #cv2.imshow("frames",frame)
         src = cv2_to_qimage(frame)
         gui.changeim(src)
-
-
-        ret, frame = vid.read()
         cv2.waitKey(1)
 
 app = QApplication(sys.argv)
