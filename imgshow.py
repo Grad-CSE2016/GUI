@@ -117,12 +117,19 @@ class Example(QMainWindow):
         #query.exec_("insert into logs values(date('now'),time('now'), ?)",(text))
         query.prepare("INSERT INTO logs(date,time,log) VALUES (?,?,?)")
         date = datetime.now().date()
-        time = datetime.now().time()   
+        time = datetime.now().time() 
+        date = date.strftime('%m/%d/%Y')  
+        time = time.strftime('%H:%M:%S')  
+
+        
+        print(date,time)
         query.addBindValue(date)
         query.addBindValue(time)
         query.addBindValue(text)
+
         if not query.exec_():
             print(query.lastError().text())
+
     def button_Pressed(self,btn):
         if btn.isChecked() == True:
             self.log_msg = btn.text() + " Started ..."
