@@ -89,6 +89,7 @@ class Example(QMainWindow):
         #self.w = MyPopup()
         #self.w.show()
         tableview.horizontalHeader().setStretchLastSection(True)
+        tableview.setGeometry(300, 300, 1000, 1000)
         tableview.show()
 
     def create_DB(self):
@@ -168,11 +169,8 @@ class Example(QMainWindow):
                 #call falling file
                 pass
         self.insert_DB(self.log_msg)
-            #self.log_msg = self.log_msg + "\n" + btn.text()+ " Turned off ..."
-            #self.logs.setText(self.log_msg)
 
    	
-
     def showDialog(self):
         fname = QFileDialog.getOpenFileName(self, 'Open file', '/home')
         if fname[0]:
@@ -184,7 +182,6 @@ class Example(QMainWindow):
     def changeim(self,src):
         pixmap = QPixmap(src)
         self.lbl.setPixmap(pixmap)
-
 
 
 def cv2_to_qimage(cv_img):
@@ -211,10 +208,6 @@ def draw(frame,coordinates):
                 gui.luggage_coordinates.append(coordinate)
 
 
-
-    
-
-
 def play(src):
     vid = cv2.VideoCapture("2.mp4")
     BG = cv2.imread('./Abandoned-Object-Detection/bg.jpg')
@@ -225,8 +218,6 @@ def play(src):
     thread2  = QThread()
     while (1):
         ret, frame = vid.read()
-        
-
         if gui.tracking_flag == True:
             tracker.moveToThread(thread1)
 
@@ -242,16 +233,9 @@ def play(src):
             #out = tracker.get_frame(frame)
             #frame = draw(frame,out)
         if gui.luggage_flag == True:
-
             objs = aod.get_abandoned_objs(frame)
             draw(frame,objs)
-            #tracker.moveToThread(thread1)
-            #tracker.get_frame(frame)
-            #tracker.calc_bounding.connect(draw)
-            #thread1.start()
-            pass
 
-            
 
         #cv2.imshow("frames",frame)
         src = cv2_to_qimage(frame)
