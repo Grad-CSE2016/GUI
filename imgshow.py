@@ -3,10 +3,11 @@ import numpy as np
 import sys
 from PyQt5.QtGui import QImage
 from PyQt5.QtWidgets import (QWidget, QHBoxLayout,QPushButton,QFileDialog,
-    QLabel, QApplication,  QMainWindow, QAction, qApp,QVBoxLayout,QCheckBox,QTextEdit)
+    QLabel, QApplication,  QMainWindow, QAction, qApp,QVBoxLayout,QCheckBox,QTextEdit,QTableView)
 from PyQt5.QtGui import QPixmap,QIcon
 from PyQt5.QtCore import (Qt,QThread)
-
+from PyQt5 import QtSql
+from datetime import datetime
 import Tracking
 
 
@@ -22,8 +23,13 @@ class Example(QMainWindow):
     def __init__(self):
         super().__init__()
         self.initUI()
+        
 
     def initUI(self):
+        db_view = self.create_DB()
+        show_db = QPushButton("Open Database",self)
+        show_db.clicked.connect(lambda:self.show_db(db_view))
+
         self.lbl = QLabel(self)
         hbox = QHBoxLayout(self)
         hbox.addWidget(self.lbl)
@@ -39,6 +45,7 @@ class Example(QMainWindow):
         vbox.addWidget(actions)
         vbox.addWidget(falling)
 
+
         hbox.addLayout(vbox)
         hbox.addStretch(1)
 
@@ -50,6 +57,8 @@ class Example(QMainWindow):
         vbox2 = QVBoxLayout(self)
         vbox2.addLayout(hbox)
         vbox2.addWidget(self.logs)
+        vbox2.addWidget(show_db)
+
         
         parentBox=QWidget(self)
         parentBox.setLayout(vbox2)  
@@ -72,12 +81,50 @@ class Example(QMainWindow):
         self.setGeometry(300, 300, 350, 300)
         self.setWindowTitle('surveillance system')
         self.show()
+    def show_db(self,tableview):
+        #self.w = MyPopup()
+        #self.w.show()
+        tableview.horizontalHeader().setStretchLastSection(True)
+        tableview.show()
 
+    def create_DB(self):
+        db = QtSql.QSqlDatabase.addDatabase("QSQLITE")
+        db.setDatabaseName("surveillance.db")
+        db.open()
+        if not db.open():
+            QtGui.QMessageBox.critical(None, QtGui.qApp.tr("Cannot open database"),
+            QtGui.qApp.tr("Unable to establish a database connection.\n"
+            "This example needs SQLite support. Please read "
+            "the Qt SQL driver documentation for information "
+            "how to build it.\n\n" "Click Cancel to exit."),
+            QtGui.QMessageBox.Cancel)
+            return False
+
+        model = QtSql.QSqlTableModel(self,db)
+        model.setTable("logs")
+        model.select()
+
+        tableview = QTableView()
+        tableview.setModel(model)
+        
+
+        query = QtSql.QSqlQuery()
+        query.exec_("create table logs(date text , time text , log text )")
+        return tableview
+
+    def insert_DB(self,text):
+        query = QtSql.QSqlQuery()
+        #query.exec_("insert into logs values(date('now'),time('now'), ?)",(text))
+        query.prepare("INSERT INTO logs(date,time,log) VALUES (?,?,?)")
+        date = datetime.now().date()
+        time = datetime.now().time()   
+        query.addBindValue(date)
+        query.addBindValue(time)
+        query.addBindValue(text)
+        if not query.exec_():
+            print(query.lastError().text())
     def button_Pressed(self,btn):
         if btn.isChecked() == True:
-            #self.log_msg = self.log_msg  + btn.text()+ " Started ..."
-            #self.logs.setText(self.log_msg)
-            #self.logs.insertPlainText(self.log_msg)
             self.log_msg = btn.text() + " Started ..."
             self.logs.append(self.log_msg)
             if btn.text() == self.tracking:
@@ -109,8 +156,11 @@ class Example(QMainWindow):
             elif btn.text() == self.falling:
                 #call falling file
                 pass
+        self.insert_DB(self.log_msg)
             #self.log_msg = self.log_msg + "\n" + btn.text()+ " Turned off ..."
             #self.logs.setText(self.log_msg)
+
+   	
 
     def showDialog(self):
         fname = QFileDialog.getOpenFileName(self, 'Open file', '/home')
@@ -123,6 +173,7 @@ class Example(QMainWindow):
     def changeim(self,src):
         pixmap = QPixmap(src)
         self.lbl.setPixmap(pixmap)
+
 
 
 def cv2_to_qimage(cv_img):
@@ -179,6 +230,8 @@ def play(src):
         cv2.waitKey(1)
 
 app = QApplication(sys.argv)
+app.setStyle('Fusion')
+
 gui = Example()
 tracker=Tracking.Tracking()
 sys.exit(app.exec_())
