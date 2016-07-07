@@ -9,12 +9,15 @@ from PyQt5.QtCore import (Qt,QThread,QFile)
 from PyQt5 import QtSql
 from datetime import datetime
 import xlwt
-import Tracking
+
 
 from io import StringIO,BytesIO
 
 sys.path.append('./Abandoned-Object-Detection')
-from AbandonedObjectDetection import * 
+from AbandonedObjectDetection import *
+
+sys.path.append('./TrackingPeople')
+from TrackingPeople import *
 
 class Example(QMainWindow):
     tracking = "Tracking"
@@ -29,11 +32,11 @@ class Example(QMainWindow):
     def __init__(self):
         super().__init__()
         self.initUI()
-        
+
 
     def initUI(self):
         db_view = self.create_DB()
-        
+
         show_db = QPushButton("Open Database",self)
         show_db.clicked.connect(lambda:self.show_db(db_view))
         export_db = QPushButton("Export Database",self)
@@ -43,7 +46,7 @@ class Example(QMainWindow):
         self.lbl = QLabel(self)
         hbox = QHBoxLayout(self)
         hbox.addWidget(self.lbl)
-        
+
         vbox = QVBoxLayout(self)
         tracking = QCheckBox(self.tracking)
         luggage= QCheckBox(self.luggage)
@@ -63,16 +66,16 @@ class Example(QMainWindow):
         self.logs.setReadOnly(True)
         self.logs.setLineWrapMode(QTextEdit.NoWrap)
         self.logs.setMaximumHeight(200)
-        
+
         vbox2 = QVBoxLayout(self)
         vbox2.addLayout(hbox)
         vbox2.addWidget(self.logs)
         vbox2.addWidget(show_db)
         vbox2.addWidget(export_db)
 
-        
+
         parentBox=QWidget(self)
-        parentBox.setLayout(vbox2)  
+        parentBox.setLayout(vbox2)
         self.setCentralWidget(parentBox)
 
         tracking.stateChanged.connect(lambda:self.button_Pressed(tracking))
@@ -116,12 +119,12 @@ class Example(QMainWindow):
         model.setTable("logs")
         model.select()
         self.model = model
-        
+
 
         #tableview = QTableWidget()
         tableview = QTableView()
         tableview.setModel(model)
-        
+
 
         query = QtSql.QSqlQuery()
         query.exec_("create table logs(date text , time text , log text )")
@@ -132,9 +135,9 @@ class Example(QMainWindow):
         #query.exec_("insert into logs values(date('now'),time('now'), ?)",(text))
         query.prepare("INSERT INTO logs(date,time,log) VALUES (?,?,?)")
         date = datetime.now().date()
-        time = datetime.now().time() 
-        date = date.strftime('%m/%d/%Y')  
-        time = time.strftime('%H:%M:%S')  
+        time = datetime.now().time()
+        date = date.strftime('%m/%d/%Y')
+        time = time.strftime('%H:%M:%S')
 
         query.addBindValue(date)
         query.addBindValue(time)
@@ -180,7 +183,7 @@ class Example(QMainWindow):
                 pass
         self.insert_DB(self.log_msg)
 
-   	
+
     def showDialog(self):
         fname = QFileDialog.getOpenFileName(self, 'Open file', '/home')
         if fname[0]:
@@ -199,8 +202,8 @@ class Example(QMainWindow):
 
         #f = QFile(filename);
         #f.open()
-       
-        
+
+
 
         wbk = xlwt.Workbook()
         sheet = wbk.add_sheet("sheet", cell_overwrite_ok=True)
@@ -214,7 +217,7 @@ class Example(QMainWindow):
                     teext = str(self.model.data(self.model.index(currentRow, currentColumn)))
                     sheet.write(currentRow, currentColumn, teext)
                 except AttributeError:
-                    pass 
+                    pass
 
 def cv2_to_qimage(cv_img):
 
@@ -238,8 +241,36 @@ def draw(frame,coordinates):
                 gui.logs.append("Unattended Luggage Detected !")
                 gui.insert_DB("Unattended Luggage Detected !")
                 gui.luggage_coordinates.append(coordinate)
-
-
+colours = np.random.rand(32,3)
+font = cv2.FONT_HERSHEY_SIMPLEX
+maxID=0
+lastCount=0
+lastMax=0
+def drawPedesterian(frame,track_bbs_ids,detections,count):
+    global lastCount
+    global lastMax
+    global maxID
+    reductFramSize=15
+    for(tracker)in track_bbs_ids:
+        x1,y1,x2,y2,n=int(tracker[0]),int(tracker[1]),int(tracker[2]),int(tracker[3]),int(tracker[4]),;
+        #print(tracker)
+        if(n>maxID):
+            maxID=n
+        color=colours[n%32,:]
+        B=int(color[0]*255)
+        R=int(color[1]*255)
+        G=int(color[2]*255)
+        cv2.putText(frame,str(n),(x1,y1), font, 1, (R,G,B), 2, cv2.LINE_AA)
+        cv2.rectangle(frame,(x1+reductFramSize,y1+reductFramSize),(x2-reductFramSize, y2-reductFramSize),(R,G,B),2)
+    cv2.putText(frame,str(count),(0,50), font, 2, (0,255,0), 2, cv2.LINE_AA)
+    if(lastCount!=count):
+        lastCount=count
+        gui.logs.append("people count now "+str(count))
+        gui.insert_DB("people count now "+str(count))
+    if(lastMax!=maxID):
+        lastMax=maxID
+        gui.logs.append("people count from start "+str(maxID))
+        gui.insert_DB("people count  from start "+str(maxID))
 def play(src):
     vid = cv2.VideoCapture(src)
     BG = cv2.imread('./Abandoned-Object-Detection/bg.jpg')
@@ -251,14 +282,22 @@ def play(src):
     while (1):
         ret, frame = vid.read()
         if gui.tracking_flag == True:
-            tracker.moveToThread(thread1)
+            trackers,detections,peopleCount=tracker.get_frame(frame)
+            drawPedesterian(frame,trackers,detections,peopleCount)
+            #draw(frame,detections)
 
-            tracker.get_frame(frame)
 
-            tracker.calc_bounding.connect(draw)
+            # tracker.moveToThread(thread1)
+            #
+            # tracker.get_frame(frame)
+            #
+            # tracker.calc_bounding.connect(draw)
+            # thread1.start()
+
+
 
             #self.stopButton.clicked.connect(self.simulRunner.stop)
-            thread1.start()
+
             # start the execution loop with the thread:
             #self.simulThread.started.connect(self.simulRunner.longRunning)
 
@@ -276,7 +315,7 @@ def play(src):
 
 app = QApplication(sys.argv)
 app.setStyle('Fusion')
-
+tracker=TrackingPeople()
 gui = Example()
-tracker=Tracking.Tracking()
+
 sys.exit(app.exec_())
