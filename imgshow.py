@@ -3,13 +3,15 @@ import numpy as np
 import sys
 from PyQt5.QtGui import QImage
 from PyQt5.QtWidgets import (QWidget, QHBoxLayout,QPushButton,QFileDialog,
-    QLabel, QApplication,  QMainWindow, QAction, qApp,QVBoxLayout,QCheckBox,QTextEdit,QTableView)
+    QLabel, QApplication,  QMainWindow, QAction, qApp,QVBoxLayout,QCheckBox,QTextEdit,QTableView,QTableWidget)
 from PyQt5.QtGui import QPixmap,QIcon
-from PyQt5.QtCore import (Qt,QThread)
+from PyQt5.QtCore import (Qt,QThread,QFile)
 from PyQt5 import QtSql
 from datetime import datetime
-
+import xlwt
 import Tracking
+
+from io import StringIO,BytesIO
 
 sys.path.append('./Abandoned-Object-Detection')
 from AbandonedObjectDetection import * 
@@ -31,8 +33,12 @@ class Example(QMainWindow):
 
     def initUI(self):
         db_view = self.create_DB()
+        
         show_db = QPushButton("Open Database",self)
         show_db.clicked.connect(lambda:self.show_db(db_view))
+        export_db = QPushButton("Export Database",self)
+        export_db.clicked.connect(lambda:self.savefile())
+
 
         self.lbl = QLabel(self)
         hbox = QHBoxLayout(self)
@@ -62,6 +68,7 @@ class Example(QMainWindow):
         vbox2.addLayout(hbox)
         vbox2.addWidget(self.logs)
         vbox2.addWidget(show_db)
+        vbox2.addWidget(export_db)
 
         
         parentBox=QWidget(self)
@@ -108,7 +115,10 @@ class Example(QMainWindow):
         model = QtSql.QSqlTableModel(self,db)
         model.setTable("logs")
         model.select()
+        self.model = model
+        
 
+        #tableview = QTableWidget()
         tableview = QTableView()
         tableview.setModel(model)
         
@@ -183,6 +193,28 @@ class Example(QMainWindow):
         pixmap = QPixmap(src)
         self.lbl.setPixmap(pixmap)
 
+    def savefile(self):
+        #filename = str(QFileDialog.getSaveFileName(self, 'Save File', '', ".xls(*.xls)"))
+        #filename= str(QFileDialog.getSaveFileName(self,"saveFlle","",filter =".xls(*.xls)"))
+
+        #f = QFile(filename);
+        #f.open()
+       
+        
+
+        wbk = xlwt.Workbook()
+        sheet = wbk.add_sheet("sheet", cell_overwrite_ok=True)
+        self.add2(sheet)
+        wbk.save("exportedDB.xls")
+
+    def add2(self, sheet):
+        for currentColumn in range(3):
+            for currentRow in range(self.model.rowCount()):
+                try:
+                    teext = str(self.model.data(self.model.index(currentRow, currentColumn)))
+                    sheet.write(currentRow, currentColumn, teext)
+                except AttributeError:
+                    pass 
 
 def cv2_to_qimage(cv_img):
 
@@ -209,7 +241,7 @@ def draw(frame,coordinates):
 
 
 def play(src):
-    vid = cv2.VideoCapture("2.mp4")
+    vid = cv2.VideoCapture(src)
     BG = cv2.imread('./Abandoned-Object-Detection/bg.jpg')
 
     aod = AbandonedObjectDetection(vid, BG)
