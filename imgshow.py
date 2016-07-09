@@ -7,6 +7,8 @@ from PyQt5.QtWidgets import (QWidget, QHBoxLayout,QPushButton,QFileDialog,
 from PyQt5.QtGui import QPixmap,QIcon
 from PyQt5.QtCore import (Qt,QThread,QFile)
 from PyQt5 import QtSql
+import time
+
 from datetime import datetime
 import xlwt
 
@@ -18,7 +20,8 @@ from AbandonedObjectDetection import *
 
 sys.path.append('./TrackingPeople')
 from TrackingPeople import *
-
+maxHeight=500;
+maxWidth=600;
 class Example(QMainWindow):
     tracking = "Tracking"
     luggage = "Luggage"
@@ -29,25 +32,34 @@ class Example(QMainWindow):
     luggage_flag = False
     luggage_coordinates = []
 
+
     def __init__(self):
         super().__init__()
         self.initUI()
 
-
     def initUI(self):
         db_view = self.create_DB()
-
+        global maxHeight
+        global maxWidth
+        self.maxHeight=maxHeight
+        self.maxWidth=maxWidth
         show_db = QPushButton("Open Database",self)
         show_db.clicked.connect(lambda:self.show_db(db_view))
         export_db = QPushButton("Export Database",self)
         export_db.clicked.connect(lambda:self.savefile())
 
+        pixmap = QPixmap("back.jpg")
 
+        # pixmap= pixmap.scaled(self.maxWidth,self.maxHeight);
+        pixmap=pixmap.scaledToHeight(self.maxHeight)
         self.lbl = QLabel(self)
+        # self.lbl.setFixedWidth(self.maxWidth)
+        self.lbl.setFixedHeight(self.maxHeight)
+        self.lbl.setPixmap(pixmap)
         hbox = QHBoxLayout(self)
         hbox.addWidget(self.lbl)
 
-        vbox = QVBoxLayout(self)
+        vbox = QHBoxLayout(self)
         tracking = QCheckBox(self.tracking)
         luggage= QCheckBox(self.luggage)
         actions = QCheckBox(self.actions)
@@ -58,8 +70,11 @@ class Example(QMainWindow):
         vbox.addWidget(actions)
         vbox.addWidget(falling)
 
+        vbox.addWidget(show_db)
+        vbox.addWidget(export_db)
 
-        hbox.addLayout(vbox)
+
+        #hbox.addLayout(vbox)
         hbox.addStretch(1)
 
         self.logs = QTextEdit(self)
@@ -69,9 +84,10 @@ class Example(QMainWindow):
 
         vbox2 = QVBoxLayout(self)
         vbox2.addLayout(hbox)
+        vbox2.addLayout(vbox)
         vbox2.addWidget(self.logs)
-        vbox2.addWidget(show_db)
-        vbox2.addWidget(export_db)
+
+
 
 
         parentBox=QWidget(self)
@@ -93,7 +109,7 @@ class Example(QMainWindow):
         fileMenu.addAction(openFile)
 
         self.setGeometry(300, 300, 350, 300)
-        self.setWindowTitle('surveillance system')
+        self.setWindowTitle('Horas Surveillance System')
         self.show()
     def show_db(self,tableview):
         #self.w = MyPopup()
@@ -127,13 +143,13 @@ class Example(QMainWindow):
 
 
         query = QtSql.QSqlQuery()
-        query.exec_("create table logs(date text , time text , log text )")
+        query.exec_("create table logs(date text , time text , log text ,stype text,svalue number)")
         return tableview
 
-    def insert_DB(self,text):
+    def insert_DB(self,text,stype='',svalue=0):
         query = QtSql.QSqlQuery()
         #query.exec_("insert into logs values(date('now'),time('now'), ?)",(text))
-        query.prepare("INSERT INTO logs(date,time,log) VALUES (?,?,?)")
+        query.prepare("INSERT INTO logs(date,time,log,stype,svalue) VALUES (?,?,?,?,?)")
         date = datetime.now().date()
         time = datetime.now().time()
         date = date.strftime('%m/%d/%Y')
@@ -142,6 +158,8 @@ class Example(QMainWindow):
         query.addBindValue(date)
         query.addBindValue(time)
         query.addBindValue(text)
+        query.addBindValue(stype)
+        query.addBindValue(svalue)
 
         if not query.exec_():
             print(query.lastError().text())
@@ -220,11 +238,14 @@ class Example(QMainWindow):
                     pass
 
 def cv2_to_qimage(cv_img):
-
+    global maxWidth
+    global maxHeight
     height, width, bytesPerComponent = cv_img.shape
     bgra = np.zeros([height, width, 4], dtype=np.uint8)
     bgra[:, :, 0:3] = cv_img
-    return QImage(bgra.data, width, height, QImage.Format_RGB32)
+    pixmap=QImage(bgra.data, width, height, QImage.Format_RGB32)
+    pixmap = pixmap.scaledToHeight(maxHeight)
+    return pixmap
 
 def changeFileSrc(src):
     play(src)
@@ -241,7 +262,7 @@ def draw(frame,coordinates):
                 gui.logs.append("Unattended Luggage Detected !")
                 gui.insert_DB("Unattended Luggage Detected !")
                 gui.luggage_coordinates.append(coordinate)
-colours = np.random.rand(32,3)
+colours = np.array([[255,0,0],[0,255,0],[0,0,255],[255,255,0],[255,0,255],[0,255,255],[255,255,255],[0,0,0],[128,0,0],[0,128,0],[0,0,128],[128,128,0],[0,128,128],[128,0,128]])
 font = cv2.FONT_HERSHEY_SIMPLEX
 maxID=0
 lastCount=0
@@ -251,36 +272,52 @@ def drawPedesterian(frame,track_bbs_ids,detections,count):
     global lastMax
     global maxID
     reductFramSize=15
+
+    for(tracker)in detections:
+        x1,y1,x2,y2=int(tracker[0]),int(tracker[1]),int(tracker[2]),int(tracker[3]);
+
+        #cv2.rectangle(frame,(x1+reductFramSize,y1+reductFramSize),(x2-reductFramSize, y2-reductFramSize),(255,0,0),2)
+
+
     for(tracker)in track_bbs_ids:
         x1,y1,x2,y2,n=int(tracker[0]),int(tracker[1]),int(tracker[2]),int(tracker[3]),int(tracker[4]),;
         #print(tracker)
         if(n>maxID):
             maxID=n
-        color=colours[n%32,:]
-        B=int(color[0]*255)
-        R=int(color[1]*255)
-        G=int(color[2]*255)
+        color=colours[n%len(colours),:]
+        B=int(color[0])
+        R=int(color[1])
+        G=int(color[2])
         cv2.putText(frame,str(n),(x1,y1), font, 1, (R,G,B), 2, cv2.LINE_AA)
         cv2.rectangle(frame,(x1+reductFramSize,y1+reductFramSize),(x2-reductFramSize, y2-reductFramSize),(R,G,B),2)
     cv2.putText(frame,str(count),(0,50), font, 2, (0,255,0), 2, cv2.LINE_AA)
+    cv2.putText(frame,str(len(track_bbs_ids)),(0,100), font, 2, (0,0,255), 2, cv2.LINE_AA)
     if(lastCount!=count):
         lastCount=count
-        gui.logs.append("people count now "+str(count))
-        gui.insert_DB("people count now "+str(count))
+        gui.logs.append("people tracked now "+str(len(track_bbs_ids)))
+        gui.insert_DB("people tracked now "+str(len(track_bbs_ids)),"count",str(len(track_bbs_ids)))
     if(lastMax!=maxID):
         lastMax=maxID
-        gui.logs.append("people count from start "+str(maxID))
-        gui.insert_DB("people count  from start "+str(maxID))
+        gui.logs.append("people count from start "+str(count))
+        gui.insert_DB("people count from start "+str(count),"tracking",str(count))
 def play(src):
     vid = cv2.VideoCapture(src)
     BG = cv2.imread('./Abandoned-Object-Detection/bg.jpg')
 
     aod = AbandonedObjectDetection(vid, BG)
+    tracker=TrackingPeople()
 
     thread1  = QThread()
     thread2  = QThread()
+    start_time = time.time()
+    end_time = time.time()
     while (1):
+        start_time = time.time()
+        if(start_time-end_time<0.04):
+            while(time.time()-end_time<0.04):
+                x=1
         ret, frame = vid.read()
+        if(not(ret)):return
         if gui.tracking_flag == True:
             trackers,detections,peopleCount=tracker.get_frame(frame)
             drawPedesterian(frame,trackers,detections,peopleCount)
@@ -311,11 +348,12 @@ def play(src):
         #cv2.imshow("frames",frame)
         src = cv2_to_qimage(frame)
         gui.changeim(src)
+        end_time = time.time()
         cv2.waitKey(1)
 
 app = QApplication(sys.argv)
 app.setStyle('Fusion')
-tracker=TrackingPeople()
+
 gui = Example()
 
 sys.exit(app.exec_())
