@@ -2,16 +2,16 @@ import cv2
 import numpy as np
 import sys
 from PyQt5.QtGui import QImage
-from PyQt5.QtWidgets import (QWidget, QHBoxLayout,QPushButton,QFileDialog,
+from PyQt5.QtWidgets import (QWidget,QGridLayout, QHBoxLayout,QPushButton,QFileDialog,
     QLabel, QApplication,  QMainWindow, QAction, qApp,QVBoxLayout,QCheckBox,QTextEdit,QTableView,QTableWidget)
 from PyQt5.QtGui import QPixmap,QIcon
 from PyQt5.QtCore import (Qt,QThread,QFile)
 from PyQt5 import QtSql
 import time
-
+from threading import Thread
 from datetime import datetime
 import xlwt
-
+import report
 
 from io import StringIO,BytesIO
 
@@ -20,7 +20,7 @@ from AbandonedObjectDetection import *
 
 sys.path.append('./TrackingPeople')
 from TrackingPeople import *
-maxHeight=500;
+maxHeight=520;
 maxWidth=600;
 class Example(QMainWindow):
     tracking = "Tracking"
@@ -38,13 +38,14 @@ class Example(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        db_view = self.create_DB()
+        self.db_view = self.create_DB()
+        self.sessionID=self.get_SessionId()
         global maxHeight
         global maxWidth
         self.maxHeight=maxHeight
         self.maxWidth=maxWidth
         show_db = QPushButton("Open Database",self)
-        show_db.clicked.connect(lambda:self.show_db(db_view))
+        show_db.clicked.connect(lambda:self.show_db(self.db_view))
         export_db = QPushButton("Export Database",self)
         export_db.clicked.connect(lambda:self.savefile())
 
@@ -56,8 +57,14 @@ class Example(QMainWindow):
         # self.lbl.setFixedWidth(self.maxWidth)
         self.lbl.setFixedHeight(self.maxHeight)
         self.lbl.setPixmap(pixmap)
-        hbox = QHBoxLayout(self)
+        hbox = QVBoxLayout(self)
+        hbox.setAlignment(Qt.AlignCenter);
         hbox.addWidget(self.lbl)
+
+        parentVideoBox=QWidget(self)
+        parentVideoBox.setStyleSheet("background-color:#121A21");
+        parentVideoBox.setLayout(hbox)
+        # parentVideoBox.setCentralWidget(self.lbl)
 
         vbox = QHBoxLayout(self)
         tracking = QCheckBox(self.tracking)
@@ -75,7 +82,7 @@ class Example(QMainWindow):
 
 
         #hbox.addLayout(vbox)
-        hbox.addStretch(1)
+        # hbox.addStretch(1)
 
         self.logs = QTextEdit(self)
         self.logs.setReadOnly(True)
@@ -83,7 +90,7 @@ class Example(QMainWindow):
         self.logs.setMaximumHeight(200)
 
         vbox2 = QVBoxLayout(self)
-        vbox2.addLayout(hbox)
+        vbox2.addWidget(parentVideoBox)
         vbox2.addLayout(vbox)
         vbox2.addWidget(self.logs)
 
@@ -93,7 +100,6 @@ class Example(QMainWindow):
         parentBox=QWidget(self)
         parentBox.setLayout(vbox2)
         self.setCentralWidget(parentBox)
-
         tracking.stateChanged.connect(lambda:self.button_Pressed(tracking))
         luggage.stateChanged.connect(lambda:self.button_Pressed(luggage))
         actions.stateChanged.connect(lambda:self.button_Pressed(actions))
@@ -104,11 +110,18 @@ class Example(QMainWindow):
         openFile.setStatusTip('Open new File')
         openFile.triggered.connect(self.showDialog)
 
+
+        showReport = QAction(QIcon('open.png'), 'Report', self)
+        showReport.setShortcut('Ctrl+R')
+        showReport.setStatusTip('Show Report')
+        showReport.triggered.connect(self.showReport)
+
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(openFile)
+        fileMenu.addAction(showReport)
 
-        self.setGeometry(300, 300, 350, 300)
+        self.setGeometry(300, 20, 600, 700)
         self.setWindowTitle('Horas Surveillance System')
         self.show()
     def show_db(self,tableview):
@@ -143,13 +156,19 @@ class Example(QMainWindow):
 
 
         query = QtSql.QSqlQuery()
-        query.exec_("create table logs(date text , time text , log text ,stype text,svalue number)")
+        query.exec_("create table logs(date text , time text ,sessionID number, log text ,stype text,svalue number)")
         return tableview
-
+    def get_SessionId(self):
+        query = QtSql.QSqlQuery()
+        query.exec("SELECT sessionID FROM logs");
+        if(query.last()):
+            return(query.value(0)+1)
+        else:
+            return(1)
     def insert_DB(self,text,stype='',svalue=0):
         query = QtSql.QSqlQuery()
         #query.exec_("insert into logs values(date('now'),time('now'), ?)",(text))
-        query.prepare("INSERT INTO logs(date,time,log,stype,svalue) VALUES (?,?,?,?,?)")
+        query.prepare("INSERT INTO logs(date,time,log,stype,svalue,sessionID) VALUES (?,?,?,?,?,?)")
         date = datetime.now().date()
         time = datetime.now().time()
         date = date.strftime('%m/%d/%Y')
@@ -160,6 +179,8 @@ class Example(QMainWindow):
         query.addBindValue(text)
         query.addBindValue(stype)
         query.addBindValue(svalue)
+        query.addBindValue(self.sessionID)
+
 
         if not query.exec_():
             print(query.lastError().text())
@@ -236,6 +257,9 @@ class Example(QMainWindow):
                     sheet.write(currentRow, currentColumn, teext)
                 except AttributeError:
                     pass
+    def showReport(self):
+        self.report=report.report(self.db_view)
+        self.report.show()
 
 def cv2_to_qimage(cv_img):
     global maxWidth
@@ -248,6 +272,8 @@ def cv2_to_qimage(cv_img):
     return pixmap
 
 def changeFileSrc(src):
+    #   t = Thread(target=play, args=(src,))
+    #   t.start()
     play(src)
 
 def draw(frame,coordinates):
