@@ -22,6 +22,9 @@ class report(QWidget):
         super().__init__()
         self.initUI()
     def initUI(self):
+        totalCount=0
+        luggageCount=0
+        actions=0
         self.setGeometry(300, 20, 700, 700)
         self.setWindowTitle('Daily Report')
         query = QtSql.QSqlQuery()
@@ -30,11 +33,15 @@ class report(QWidget):
             self.sessionID=query.value(0)
         queryStr=("SELECT svalue FROM logs WHERE sessionID=%d AND stype='luggage' "%self.sessionID)
         query.exec(queryStr)
-        luggageCount=query.size()
+        while (query.next()):
+            luggageCount+=1
+
 
         queryStr=("SELECT svalue FROM logs WHERE sessionID=%d AND stype='actions' "%self.sessionID)
         query.exec(queryStr)
-        actions=query.size()
+        while (query.next()):
+            actions+=1
+
 
         queryStr=("SELECT svalue FROM logs WHERE sessionID=%d AND stype='tracking' "%self.sessionID)
         query.exec(queryStr)
@@ -49,24 +56,35 @@ class report(QWidget):
         # print(countingValues)
         lbl = QLabel(self)
         text="<center><img src='logo.png' height=70>"
-        text+="<h4> Total number of counts: <b style='color:red'>"+str(totalCount)+"</b></h4>"
+
         if(luggageCount==-1):
             luggageCount=0
         if(actions==-1):
             actions=0
+
+        # text+="<table><tr><td> Total Counts</td><td> Abandoned objects  </td></tr>"
+        # text+="<tr><td> "+str(totalCount)+"</td><td>"+str(luggageCount)+"  </td></tr></table>"
+        #
+        # text+="<table><tr><td>Falling</td><td> Boxing  </td></tr>"
+        # text+="<tr><td> "+str(totalCount)+"</td><td>"+str(luggageCount)+"  </td></tr></table>"
+
+
+        text+="<h4> Total number of counts: <b style='color:red'>"+str(totalCount)+"</b></h4>"
         text+="<h4>Total number of Abandoned objects <b style='color:red'>"+str(luggageCount)+"<b></h4>"
-        text+="<h4>Total number of Actions <b style='color:red'>"+str(actions)+"<b></h4>"
-        data=np.asarray(countingValues)
-        x=np.arange(len(data))
-        fig, ax = plt.subplots()
-        plt.xticks(x, data[:,0])
-        start, end = ax.get_xlim()
-        ax.xaxis.set_ticks(np.arange(start, end, 10))
-        ax.plot(x, data[:,1])
-        ax.grid(True)
-        fig.autofmt_xdate()
-        plt.savefig('report.jpg')
-        text+="<h2><img src='report.jpg' width=700></center></h2>"
+        # text+="<h4>Total number of Actions <b style='color:red'>"+str(actions)+"<b></h4>"
+        if(len(countingValues)>0):
+            data=np.asarray(countingValues)
+            x=np.arange(len(data))
+            fig, ax = plt.subplots()
+            plt.xticks(x, data[:,0])
+            start, end = ax.get_xlim()
+            ax.xaxis.set_ticks(np.arange(start, end, 10))
+            ax.plot(x, data[:,1])
+            ax.grid(True)
+            fig.autofmt_xdate()
+            plt.savefig('report.jpg')
+            text+="<h2><img src='report.jpg' width=700></h2>"
+        text+="</center>"
         # plt.show()
         lbl.setFixedWidth(700)
         lbl.setText(text)

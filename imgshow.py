@@ -286,7 +286,7 @@ def draw(frame,coordinates):
             cv2.rectangle(frame, (x,y), (x+w, y+h), (255,0,0), 2)
             if coordinate not in gui.luggage_coordinates:
                 gui.logs.append("Unattended Luggage Detected !")
-                gui.insert_DB("Unattended Luggage Detected !")
+                gui.insert_DB("Unattended Luggage Detected !","luggage")
                 gui.luggage_coordinates.append(coordinate)
 colours = np.array([[255,0,0],[0,255,0],[0,0,255],[255,255,0],[255,0,255],[0,255,255],[255,255,255],[0,0,0],[128,0,0],[0,128,0],[0,0,128],[128,128,0],[0,128,128],[128,0,128]])
 font = cv2.FONT_HERSHEY_SIMPLEX
@@ -302,7 +302,7 @@ def drawPedesterian(frame,track_bbs_ids,detections,count):
     for(tracker)in detections:
         x1,y1,x2,y2=int(tracker[0]),int(tracker[1]),int(tracker[2]),int(tracker[3]);
 
-        #cv2.rectangle(frame,(x1+reductFramSize,y1+reductFramSize),(x2-reductFramSize, y2-reductFramSize),(255,0,0),2)
+        # cv2.rectangle(frame,(x1+reductFramSize,y1+reductFramSize),(x2-reductFramSize, y2-reductFramSize),(255,0,0),2)
 
 
     for(tracker)in track_bbs_ids:
@@ -318,6 +318,7 @@ def drawPedesterian(frame,track_bbs_ids,detections,count):
         cv2.rectangle(frame,(x1+reductFramSize,y1+reductFramSize),(x2-reductFramSize, y2-reductFramSize),(R,G,B),2)
     cv2.putText(frame,str(count),(0,50), font, 2, (0,255,0), 2, cv2.LINE_AA)
     cv2.putText(frame,str(len(track_bbs_ids)),(0,100), font, 2, (0,0,255), 2, cv2.LINE_AA)
+    # cv2.putText(frame,str(len(detections)),(0,150), font, 2, (0,0,255), 2, cv2.LINE_AA)
     if(lastCount!=count):
         lastCount=count
         gui.logs.append("people tracked now "+str(len(track_bbs_ids)))
